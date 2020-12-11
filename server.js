@@ -21,7 +21,7 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
-mongoose.connect("mongodb://localhost:27017/authDB", { useNewUrlParser: true });
+mongoose.connect("mongodb://localhost:27017/authDB", { useNewUrlParser: true , useUnifiedTopology: true });
 mongoose.set("useCreateIndex",true);
 const userSchema = new mongoose.Schema({
     email: String,
@@ -59,7 +59,7 @@ app.route("/login")
         }
         else {
             passport.authenticate("local")(req, res, () => {
-                res.render("result");
+                res.redirect("/dashboard");
 
             })
         }
@@ -79,16 +79,16 @@ app.route("/register")
         }
         else {
             passport.authenticate("local")(req, res, () => {
-                res.render("result");
+                res.redirect("/dashboard");
 
             })
         }
     })
 });
 
-app.get("/result", (req, res) => {
+app.get("/dashboard", (req, res) => {
     if (req.isAuthenticated()) {
-        res.render("result");
+        res.render("dashboard");
     }
     else {
         res.redirect("/login");
@@ -99,8 +99,34 @@ app.get("/logout",(req,res)=>{
     req.logout();
     res.redirect("/");
 })
+app.route("/changePass")
+.get((req,res)=>{
+    res.render("changePass");
+})
+.post((req,res)=>{
+    if (req.isAuthenticated()) {
+    User.findById(req.user._id)
+        // I assume you already have authentication and the req.user is generated
+        .then(foundUser => {
+            foundUser.changePassword(req.body.old, req.body.new)
+                .then(() => {
+                    console.log('password changed');
+                    res.redirect("/");
+                })
+                .catch((error) => {
+                    console.log(error);
+                })
+        })
+        .catch((error) => {
+            console.log(error);
+        });
+    }
+    else {
+        res.redirect("/");
+    }
+});
 
-
-app.listen(3000, function () {
-    console.log("Server started on port 3000");
+const port = process.env.PORT || 3000;
+app.listen(port, function () {
+    console.log("Server started on port ",port);
 });
